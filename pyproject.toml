@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tallynet"
+version = "0.1.0"
+description = "TallyNet: tally-coded multi-bit weights (unary bit bags → encoded scalar per matrix entry)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "TallyNet contributors" }]
+keywords = ["neural-networks", "binary", "multi-bit", "unary", "tally", "quantization"]
+dependencies = [
+  "numpy",
+  "torch>=2.2.0",
+]
+
+[project.optional-dependencies]
+train = [
+  "torchvision>=0.17.0",
+]
+dev = [
+  "pytest",
+  "ruff",
+]
+
+[project.scripts]
+tallynet-mnist = "tallynet.cli:train_mnist"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tallynet*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
