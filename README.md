@@ -1,14 +1,14 @@
 # TallyNet
 
-**Tally-coded multi-bit weights** for neural nets.
-
-Each matrix entry stores a bag of \(S\) equal \(\pm 1\) bits. The **tally** (how many are \(+1\), or equivalently the sum) is encoded into the scalar used in the matmul—unary multi-bit storage without place-value digits.
+Weights stored as bits. Each **parameter is one bit** (`+1` or `-1`). A group of `S` bits on one connection is a **tally weight**: we count how many are `+1` and use that count in the layer.
 
 ```text
-bits [out, in, S]  →  tally  →  enc(tally) →  w  →  matmul
+bits  →  count  →  turn count into a number  →  use it in the layer
 ```
 
-This repository is **architecture-first**. Training helpers exist so demos run; they are not the product claim. Naming rationale: [docs/TALLYNET_NAMING.md](docs/TALLYNET_NAMING.md).
+This repo is about **that way of storing weights**. Training helpers exist so demos run; they are not the claim.
+
+**Goal:** use less memory to train, so more weights fit on the computer you already have, and the model can be smarter. The bet is that a TallyNet trained on a given machine can beat a normal network that has to fit in the same memory. See [docs/GOAL.md](docs/GOAL.md). Names: [docs/TALLYNET_NAMING.md](docs/TALLYNET_NAMING.md).
 
 ## Install
 
@@ -64,6 +64,7 @@ tallynet/           # library
   writeback.py      # optional continuous step + bit flips
   data.py / cli.py  # MNIST demo
 docs/
+  GOAL.md            # hypothesis: more params, same hardware
   TALLYNET_NAMING.md
   ARCHITECTURE.md
 tests/

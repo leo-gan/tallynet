@@ -1,166 +1,140 @@
-# TallyNet — naming rationale
+# What we call things
 
-**Status:** direction decision (architecture naming)  
-**Date:** 2026-08-07  
-**Scope:** **network / weight representation only** — not optimizers, not training loops.
+**Date:** 2026-08-09
 
-This document records **why** this project uses the name **TallyNet** (and related terms: tally-coded weights, `TallyLinear`).
+This note is only about **names**: what a weight is, what a tally weight is, and why the project is called TallyNet. It is not about how to train.
 
-Origin: naming discussion and unary multi-bit experiments in the sibling research repo `binary-optimizers` (not required to use TallyNet).
+The idea started in a sibling repo (`binary-optimizers`). You do not need that repo to use TallyNet.
 
 ---
 
-## 1. Decision
+## The names we use
 
-| Item | Choice |
-|------|--------|
-| **Brand / family name** | **TallyNet** |
-| **Weight representation** | **Tally-coded multi-bit weights** |
-| **Layer type** | **`TallyLinear`** |
-| **Width hyperparameter** | **Tally width** \(S\) (number of equal bits per matrix entry) |
-| **What we are naming** | How each matrix entry is **stored and decoded** into a scalar for the matmul |
-| **What we are not naming here** | SGD/Adam, flip writeback, STE, BitNet training recipes |
+| We say | We mean |
+|--------|---------|
+| **TallyNet** | This family of networks. |
+| **Bit** / **weight** / **parameter** | One stored `+1` or `-1`. **This is one parameter.** The size of the model is the number of bits. |
+| **Tally weight** | A **group of S bits** on one connection. They are counted together. When the layer runs, that group becomes one number (the count, turned into a value). A tally weight is **not** one parameter. It is a group of parameters. |
+| **Tally** | How many bits in the group are `+1` (same information as adding the `+1`/`-1` values). |
+| **Tally width** `S` | How many bits are in one group. Not “how wide the network is.” |
+| **TallyLinear** | A linear layer that works this way. |
 
-**One-sentence architecture claim:**
+In one sentence:
 
-> Each matrix entry stores a fixed bag of \(S\) equal \(\pm 1\) bits; the **tally** (how many are \(+1\), or equivalently the sum) is mapped by an encoder to the scalar used in the linear map.
+> Each parameter is one bit. `S` bits on the same connection are a tally weight. We count them and use that count in the layer.
 
 \[
-w_{ij}
+w
 =
-\mathrm{enc}\bigl(\mathrm{tally}(a_{ij,1},\ldots,a_{ij,S})\bigr),
+\mathrm{enc}(\text{tally of }S\text{ bits}),
 \qquad
-\mathrm{tally}
+\text{tally}
 =
-\#\{k : a_{ij,k}=+1\}
-\quad\text{(or } s=\sum_k a_{ij,k}\text{)}
+\text{number of }{+}1\text{s}
 \]
 
+Each of those `S` bits is a parameter. `w` is the group, turned into one number for the multiply. We do not store `w` as the real weight.
+
 ---
 
-## 2. What TallyNet *is* (architecture)
+## Easy to mix up
 
-### 2.1 Core objects
+| This | Is not |
+|------|--------|
+| A **bit** (one weight) | A digit inside some other weight |
+| A **tally weight** (a group of bits) | One stored parameter |
+| That **group** | A **batch of training examples** |
 
-| Term | Meaning |
-|------|---------|
-| **Bit** | One stored unit \(\in \{\pm 1\}\) (or \(0/1\) if packed) on a matrix entry |
-| **Tally width** \(S\) | Number of bits **per matrix entry** (not network width in neurons) |
-| **Tally** | Count of \(+1\)s (equivalent information to sum of \(\pm 1\) bits) |
-| **Tally encoder** | \(w = \mathrm{enc}(\mathrm{tally})\): e.g. fixed \(s/S\), majority \(\mathrm{sign}(s)\), \(\tanh\), … |
-| **Tally weight** | Scalar \(w\) actually used in the matmul for that entry |
-| **Tally-coded linear** | Linear map whose weights are tally-coded |
+A layer with `out` outputs and `in` inputs stores `out × in × S` parameters and has `out × in` tally weights.
 
-### 2.2 Forward sketch
+---
+
+## What happens in the layer
 
 ```text
-matrix entry (i, j)
-  └── S equal bits  a₁…a_S ∈ {±1}
-        └── tally  (popcount of +1  /  sum)
-              └── enc(tally) → w_ij
-                    └── used in y = x W
+one bit  (+1 or -1)          ← one weight, one parameter
+    │
+    │  S bits share one connection
+    ▼
+tally weight  (the group)
+    └── count how many are +1
+          └── turn the count into a number
+                └── that number is used in the layer
 ```
 
-Implications:
+- Every bit in the group counts the same. They are not “the 1s place, the 2s place, the 4s place.”
+- Only the **count** matters. Two groups with the same number of `+1`s are the same for the layer.
+- A group of size `S` can only make `S+1` different counts.
+- This is a way to **store weights**. It is not a committee of whole networks, and it is not several models trained at once.
 
-- Bits on one entry have **equal place value** (unary), not \(2^i\) roles.
-- Only the **count** matters for \(w\): patterns with the same tally share the same weight.
-- At most \(S+1\) distinct tallies (hence at most that many distinct \(w\) for a monotone encoder).
-- This is a **weight parameterization**, not an ensemble of full networks.
-
-### 2.3 Explicitly out of this name
-
-| Out of TallyNet-the-architecture | Why |
-|----------------------------------|-----|
-| Place-value / binary **register** weights | Different coding family |
-| Classical **committee machines** (ensemble of nets) | Wrong scale (models vs bits) |
-| **BitNet** as a product lineage | Different quant + STE + latent-\(W\) recipe |
-| **QAT** as the name | Training regime, not representation |
-| Discrete **optimizer** brands | Separate research axis |
-
-Training utilities (`TallyWriteback`: Adam/SGD on \(w\) + stochastic bit flips) may be used in demos; they are **not** part of the architecture name.
+How we *update* the bits (Adam, flipping bits, and so on) is a training choice. The name TallyNet does not include that.
 
 ---
 
-## 3. Why “Tally” / “TallyNet”
+## Why “tally”
 
-| Reason | Detail |
+- The main step is a **count** of equal bits.
+- A tally mark is just another mark; no bit is worth more than another.
+- Majority (“which side wins”) and a share (`count / S`) both read naturally as a tally.
+- The name is not already used for a well-known kind of net.
+- In code, `TallyLinear` and `tally_width=S` are easy to read.
+- It names **how weights are stored**, not how they are trained.
+
+We do **not** call this:
+
+| Name | Why not |
+|------|---------|
+| BitSwarm / Swarm | Sounds like particle swarm; old name. |
+| Popcount BitNet | Sounds like BitNet, and “popcount” already means a different hardware trick. |
+| Popcount QAT | QAT is a training method, not a way to store weights. |
+| Committee network | That already means a vote among whole models. |
+| BallotNet | Informal; also a CUDA word. |
+| Thermometer coding | Cousin idea; those bits are often ordered. Ours are not. |
+
+“Popcount” is fine as a *description* (“the tally is a popcount of the group”). It is a bad *product name*.
+
+---
+
+## Words to prefer
+
+| Prefer | Avoid |
 |--------|--------|
-| **Matches the math** | Defining operation is a **count** of equal bits → a scalar. |
-| **Encodes unary structure** | Tally marks are equal units (no place-value roles inside the bit bag). |
-| **Supports multi-level and majority** | Majority = who wins; \(s/S\) = soft tally / vote share. |
-| **Low literature collision** | No established DL family named TallyNet (unlike committee machines, BitNet, PSO “swarm”). |
-| **Avoids hardware misread** | “Popcount” in industry usually means **XNOR–popcount matmul**, not “weight = f(count of private bits).” |
-| **Works in code** | `TallyLinear`, `tally_width=S`, `encoder=` are readable APIs. |
-| **Separates architecture from optimizer** | Answers *how weights are represented*, not *how they are stepped*. |
+| TallyNet | Swarm net |
+| Bit, weight, parameter (all the same thing) | Digit, agent, sub-weight |
+| Tally weight, group of bits | Calling a connection “a parameter” |
+| Tally width `S` | Swarm size |
+| Tally, count | Using only “popcount” as the name |
+| Group of training examples | Bare “batch” when you mean a group of bits |
+
+**How to count a model:** TallyNet size = number of **bits**. Normal-net size = number of **numbers**. “1B vs 1B” means 1 billion numbers vs 1 billion bits, not 1 billion connections on each side.
 
 ---
 
-## 4. Why not the other candidates
+## Short text you can reuse
 
-| Candidate | Verdict | Main problem |
-|-----------|---------|--------------|
-| **Bitswarm / BitSwarm** | Legacy | PSO collision; optimizer-colored |
-| **Popcount BitNet** | Reject as brand | Impersonates BitNet; popcount = XNOR GEMM slang |
-| **Popcount QAT** | Reject as brand | QAT is a training method |
-| **Committee network** | Reject as brand | **Committee machine** = ensemble of models |
-| **BallotNet** | Demoted | Informal; CUDA `__ballot__` |
-| **Thermometer coding** | Related, not default brand | Often **ordered** prefix bits; we use **unordered** tally |
+**Short:**
 
-### Popcount — how to use it
+> TallyNet stores every parameter as one bit. A group of bits on one connection is a tally weight; we count them and use the count in the layer.
 
-| Do | Don’t |
-|----|--------|
-| “The tally is the popcount of the bit bag” | Brand “PopcountNet” / “Popcount BitNet” |
-| Hardware notes: packed sum / `__popc` | Claim novelty is inventing XNOR–popcount |
+**A bit longer:**
 
-### Closest relatives (for papers)
+> A normal layer treats one number as one parameter. TallyNet treats one bit as one parameter. Bits are grouped. The number the layer uses is a function of how many bits in the group are `+1`. How we train is a separate choice.
 
-| Relative | Relationship |
-|----------|----------------|
-| Unary / multi-bit binary weights | Same broad family |
-| ABC-Net–style multi-binary bases | Multi-bit binary; usually weighted bases |
-| BitNet / BNNs | Low-bit linears; different default storage |
-| Thermometer / unary codes | Digital-design cousins; note unordered tally |
+**Do not say, just from the name:**
+
+- We invented a new hardware popcount.
+- This is a new BitNet.
+- This is a committee of models.
+- This is a particle-swarm optimizer.
+- A tally weight is one parameter. (It is a **group** of parameters.)
 
 ---
 
-## 5. Preferred terminology
-
-| Prefer | Avoid (in new text) |
-|--------|---------------------|
-| TallyNet | Swarm net (as brand) |
-| Tally-coded weight | Effective weight (unless mapping legacy) |
-| Tally width \(S\) | Swarm size (unless mapping legacy) |
-| Tally / tally count | Bare “popcount” as the only name |
-| Tally encoder | Unnamed “decode” |
-| Bit (on an entry) | Agent |
-| Matrix entry | Connection (ambiguous) |
-
----
-
-## 6. Public phrasing
-
-**Elevator:**
-
-> **TallyNet** uses **tally-coded weights**: each parameter is a small bag of equal bits whose **tally** is encoded into a multi-level scalar for the matmul—unary multi-bit storage without place-value digits.
-
-**Slightly longer:**
-
-> Standard linear layers store one real (or one quantized) number per matrix entry. TallyNet stores **\(S\) equal binary bits** per entry and defines the entry’s value as a function of their **tally** (count of \(+1\)). Capacity is the number of distinct counts (\(S+1\)), not binary place values. This is a **weight representation** choice; training rules are specified separately.
-
-**Do not claim under the architecture name alone:**
-
-- “We invented popcount hardware.”
-- “This is a new BitNet.”
-- “This is a committee machine / ensemble.”
-- “This is a particle-swarm optimizer.”
-
----
-
-## 7. Changelog
+## Changes
 
 | Date | Change |
 |------|--------|
-| 2026-08-07 | Initial naming rationale; adopt **TallyNet** / tally-coded weights |
-| 2026-08-07 | Seeded into standalone `tallynet` repository |
+| 2026-08-07 | Chose the name TallyNet. |
+| 2026-08-07 | Copied into this repo. |
+| 2026-08-09 | One bit is one parameter. A tally weight is a group of bits. “1B” counts bits. |
+| 2026-08-09 | Rewrote in plain language. |

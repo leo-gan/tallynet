@@ -1,40 +1,40 @@
-# TallyNet architecture
+# How a TallyNet layer works
 
-See also [TALLYNET_NAMING.md](TALLYNET_NAMING.md).
+See [TALLYNET_NAMING.md](TALLYNET_NAMING.md) for names. **One bit is one parameter.** A tally weight is a **group of `S` bits** on one connection. The layer turns that group into one number by counting.
 
-## Weight representation
+## Weights
 
-For each matrix entry \((i,j)\):
+For each connection `(i, j)`:
 
-1. Store **tally width** \(S\) bits \(a_k \in \{\pm 1\}\) (buffer `bits[i,j,:]`).
-2. Compute **tally** \(s = \sum_k a_k\) (equivalently: popcount of \(+1\)).
-3. Encode \(w_{ij} = \mathrm{enc}(s)\).
-4. Use \(w_{ij}\) (optionally scaled by \(1/\sqrt{\mathrm{fan\_in}}\)) in the matmul.
+1. Store `S` bits, each `+1` or `-1` (`bits[i, j, :]`). Each bit is a parameter.
+2. Count them: `s = sum of the bits` (same as “how many are `+1`”).
+3. Turn the count into a number `w` with a small rule (below).
+4. Use `w` in the usual layer multiply (optionally scaled by `1 / sqrt(number of inputs)`).
 
-Bits are **equal**: no place-value roles. Same tally ⇒ same \(w\) (unordered multiset).
+All bits in a group count the same. Same count ⇒ same `w`. The layer’s parameter count is `out × in × S`, not `out × in`.
 
-### Built-in encoders
+### Rules that turn a count into a number
 
-| Name | Formula |
-|------|---------|
-| `fixed` | \(s/S\) |
-| `majority` | \(\mathrm{sign}(s)\) (ties → \(+1\)) |
-| `tanh` | \(\tanh(s/\tau)\) |
-| `signed_sqrt` | \(\mathrm{sign}(s)\sqrt{|s|/S}\) |
+| Name | Rule |
+|------|------|
+| `fixed` | `s / S` |
+| `majority` | sign of `s` (a tie becomes `+1`) |
+| `tanh` | `tanh(s / τ)` |
+| `signed_sqrt` | sign of `s`, times `sqrt(|s| / S)` |
 
-## Module map
+## Code map
 
-| Symbol | Role |
-|--------|------|
-| `TallyLinear` | Tally-coded linear layer |
-| `TallyMLP` | Small MLP built from `TallyLinear` |
-| `encode_tally` | Encoder functions |
-| `TallyWriteback` | Optional training: Adam/SGD on \(w\) + bit flips |
+| Name | Role |
+|------|------|
+| `TallyLinear` | Linear layer that stores bits this way |
+| `TallyMLP` | Small network built from `TallyLinear` |
+| `encode_tally` | The rules in the table above |
+| `TallyWriteback` | Optional training helper: step a trainer on `w`, then flip bits |
 
-## What is *not* architecture
+## Not part of “the architecture”
 
-- Continuous optimizer choice (SGD vs Adam)
-- Flip probability schedule / noise floor
-- Dataset or train budget protocol
+- Which trainer you pick (SGD vs Adam)
+- How often bits flip
+- Which dataset or how long you train
 
-Those live under `writeback` and `cli` as demos.
+Those live in `writeback` and `cli` as demos.
