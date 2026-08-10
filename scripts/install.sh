@@ -6,6 +6,7 @@
 #   ./scripts/install.sh --train          # also torchvision
 #   ./scripts/install.sh --cpu-torch      # PyTorch CPU wheels (CI / no NVIDIA)
 #   PYTHON=3.12 ./scripts/install.sh
+#   ./scripts/install.sh --clear          # replace an existing .venv
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,6 +20,7 @@ fi
 PYTHON="${PYTHON:-3.12}"
 WITH_TRAIN=0
 CPU_TORCH=0
+CLEAR=0
 UV_EXTRAS=(--extra dev)
 EDITABLE_EXTRAS="dev"
 
@@ -26,8 +28,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --train) WITH_TRAIN=1; shift ;;
     --cpu-torch) CPU_TORCH=1; shift ;;
+    --clear) CLEAR=1; shift ;;
     -h|--help)
-      sed -n '2,9p' "$0"
+      sed -n '2,10p' "$0"
       exit 0
       ;;
     *)
@@ -42,8 +45,12 @@ if [[ "$WITH_TRAIN" -eq 1 ]]; then
   EDITABLE_EXTRAS="dev,train"
 fi
 
-echo "uv venv --python $PYTHON"
-uv venv --python "$PYTHON"
+if [[ "$CLEAR" -eq 1 || ! -x "$ROOT/.venv/bin/python" ]]; then
+  echo "uv venv --python $PYTHON"
+  uv venv --python "$PYTHON" --clear
+else
+  echo "reusing existing $ROOT/.venv"
+fi
 # shellcheck disable=SC1091
 source "$ROOT/.venv/bin/activate"
 
@@ -58,8 +65,10 @@ fi
 export TALLYNET_MARCH="${TALLYNET_MARCH:-native}"
 "$ROOT/scripts/build_native.sh" --out "$ROOT/.kernel_cache" --march "$TALLYNET_MARCH"
 
-uv run python -m tallynet.native info
-uv run python - <<'PY'
+# Use the venv directly. `uv run` would re-sync the lockfile and can
+# replace a CPU torch wheel installed with --cpu-torch.
+"$ROOT/.venv/bin/python" -m tallynet.native info
+"$ROOT/.venv/bin/python" - <<'PY'
 from tallynet.native import status
 s = status()
 assert s["cpu"], f"native CPU kernel did not load: {s}"

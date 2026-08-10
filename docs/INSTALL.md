@@ -16,6 +16,7 @@ Needs Python ≥ 3.12, `uv`, and `g++`.
 ./scripts/install.sh           # uv venv + package + CPU kernel
 ./scripts/install.sh --train   # also torchvision (MNIST)
 ./scripts/install.sh --cpu-torch   # PyTorch CPU wheels (no NVIDIA)
+./scripts/install.sh --clear   # replace an existing .venv
 ```
 
 Or by hand:

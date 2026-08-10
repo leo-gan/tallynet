@@ -40,15 +40,15 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Ruff
-        run: uv run ruff check tallynet tests scripts
+        run: ruff check tallynet tests scripts
 
       - name: Pytest
         run: |
           mkdir -p artifacts
-          uv run pytest -q --junitxml=artifacts/junit.xml
+          pytest -q --junitxml=artifacts/junit.xml
 
       - name: Kernel info
-        run: uv run python -m tallynet.native info
+        run: python -m tallynet.native info
 
       - name: Upload test report
         if: always()

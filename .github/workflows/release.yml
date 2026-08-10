@@ -26,9 +26,10 @@ jobs:
           TALLYNET_MARCH: x86-64-v3
         run: |
           ./scripts/install.sh --cpu-torch
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           ./scripts/package.sh
           mkdir -p artifacts
-          uv run pytest -q --junitxml=artifacts/junit.xml
+          pytest -q --junitxml=artifacts/junit.xml
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
