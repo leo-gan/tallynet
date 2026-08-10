@@ -2,7 +2,26 @@
 
 **Date:** 2026-08-09
 
-This note says **why TallyNet exists**. How a layer is built is in [ARCHITECTURE.md](ARCHITECTURE.md). What we call things is in [TALLYNET_NAMING.md](TALLYNET_NAMING.md).
+This note says **why TallyNet exists**. How a layer is built is in [ARCHITECTURE.md](ARCHITECTURE.md). What we call things is in [TALLYNET_NAMING.md](TALLYNET_NAMING.md). How the count is made fast is in [SIMD.md](SIMD.md).
+
+---
+
+## Read this first
+
+A normal network stores each weight as a 16- or 32-bit number. That is expensive in **memory**, especially while training (you also keep gradients and extra trainer numbers). Memory, not math speed, is usually what caps how large a model you can train on a given machine.
+
+TallyNet stores each weight as **one bit**. That bit is one parameter. Bits that sit on the same connection are **counted together**; that group is a **tally weight**. The layer uses the count, not a stored float.
+
+The point of doing that is not a new trainer brand. It is to **need less memory to train**, so **more parameters fit on the hardware you already have**, and those extra parameters can make a **smarter** model.
+
+**The bet this project tests:** on the same computer, a TallyNet can be trained with more parameters than a normal net, and it will do better at the task. That is not proven yet. The rest of this file says how we count, what “1B vs 1B” means (1 billion **numbers** vs 1 billion **bits**), what is inference size vs training size, and what would count as success.
+
+How to read the rest:
+
+1. **The idea / how we count** — bit = parameter; tally weight = a group of bits.
+2. **Why memory** — training, not just the saved file.
+3. **1B vs 1B** — storage, training, then activations and peak memory.
+4. **Success / honesty** — what we must measure, and what the code does today.
 
 ---
 
@@ -341,3 +360,4 @@ TallyNet stores every weight as one bit. A group of bits on the same connection 
 | 2026-08-09 | 0.125 GB labeled as **inference / saved weights**, not training. Removed the “what we want = bits only” training row. |
 | 2026-08-09 | Explained why activations were omitted; added peak-memory example (same 1B shape, with and without rematerialization). |
 | 2026-08-09 | Packed storage and popcount kernels are in the tree; honesty table updated. |
+| 2026-08-09 | Added a top-level “Read this first” explanation. |
