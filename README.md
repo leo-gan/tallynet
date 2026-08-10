@@ -8,7 +8,7 @@ packed bits  →  popcount  →  turn count into a number  →  stock GEMM
 
 This repo is about **that way of storing weights**. Training helpers exist so demos run; they are not the claim.
 
-**Goal:** use less memory to train, so more weights fit on the computer you already have, and the model can be smarter. The bet is that a TallyNet trained on a given machine can beat a normal network that has to fit in the same memory. See [docs/GOAL.md](docs/GOAL.md). Names: [docs/TALLYNET_NAMING.md](docs/TALLYNET_NAMING.md).
+**Goal:** use less memory to train, so more weights fit on the computer you already have, and the model can be smarter. The bet is that a TallyNet trained on a given machine can beat a normal network that has to fit in the same memory. See [docs/GOAL.md](docs/GOAL.md). Names: [docs/TALLYNET_NAMING.md](docs/TALLYNET_NAMING.md). SIMD / popcount kernels: [docs/SIMD.md](docs/SIMD.md).
 
 ## Install
 
@@ -70,6 +70,7 @@ tallynet/           # library
   data.py / cli.py  # MNIST demo
 docs/
   GOAL.md            # hypothesis: more params, same hardware
+  SIMD.md            # why popcount hardware, measured TallyMLP speed
   TALLYNET_NAMING.md
   ARCHITECTURE.md
 tests/

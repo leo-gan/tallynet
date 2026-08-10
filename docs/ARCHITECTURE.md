@@ -1,6 +1,6 @@
 # How a TallyNet layer works
 
-See [TALLYNET_NAMING.md](TALLYNET_NAMING.md) for names. **One bit is one parameter.** A tally weight is a **group of `S` bits** on one connection. The layer turns that group into one number by counting.
+See [TALLYNET_NAMING.md](TALLYNET_NAMING.md) for names and [SIMD.md](SIMD.md) for popcount kernels. **One bit is one parameter.** A tally weight is a **group of `S` bits** on one connection. The layer turns that group into one number by counting.
 
 ## Weights
 
