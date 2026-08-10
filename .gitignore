@@ -33,4 +33,4 @@ runs/
 .DS_Store
 *.swp
 
-# uv / lock optional keep — we commit uv.lock if generated
+# uv.lock is committed (uv sync)

@@ -12,6 +12,8 @@ This repo is about **that way of storing weights**. Training helpers exist so de
 
 ## Install
 
+Uses **[uv](https://docs.astral.sh/uv/)** (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+
 ```bash
 # venv + package + C++ popcount kernel
 ./scripts/install.sh
@@ -19,13 +21,13 @@ This repo is about **that way of storing weights**. Training helpers exist so de
 ./scripts/install.sh --cpu-torch    # PyTorch CPU wheels
 
 # or by hand
-pip install -e ".[train,dev]"
+uv sync --extra train --extra dev
 ./scripts/build_native.sh
 ```
 
 Full install / wheel / CI notes: [docs/INSTALL.md](docs/INSTALL.md).
 
-PyTorch CPU wheels: if install is slow or wrong platform, install `torch` / `torchvision` from the [PyTorch index](https://pytorch.org/get-started/locally/) first.
+PyTorch CPU wheels: if install is slow or wrong platform, install `torch` / `torchvision` from the [PyTorch index](https://pytorch.org/get-started/locally/) first (`uv pip install torch --index-url https://download.pytorch.org/whl/cpu`).
 
 Bits are stored packed (`uint8`). The first tally uses a small native popcount library (CPU SIMD; CUDA `__popc` when the driver works). Set `TALLYNET_NATIVE=0` to force the Python table. `TallyLinear(..., compute="bfloat16")` or `compute="int8"` (majority, inference) picks the GEMM.
 

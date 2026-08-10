@@ -1,5 +1,5 @@
-# TallyNet: Python package + C++ popcount kernels.
-#   make install     venv + editable install + native kernel
+# TallyNet: Python package + C++ popcount kernels (uv).
+#   make install     uv venv + editable install + native kernel
 #   make native      compile kernels only
 #   make test        pytest (builds kernel first)
 #   make wheel       portable wheel + kernel artifact
@@ -23,13 +23,13 @@ native:
 	./scripts/build_native.sh
 
 test: native
-	$(PYTHON) -m pytest -q --junitxml=artifacts/junit.xml
+	uv run pytest -q --junitxml=artifacts/junit.xml
 
 lint:
-	$(PYTHON) -m ruff check tallynet tests scripts
+	uv run ruff check tallynet tests scripts
 
 bench: native
-	$(PYTHON) scripts/bench_decode.py
+	uv run python scripts/bench_decode.py
 
 wheel:
 	./scripts/package.sh

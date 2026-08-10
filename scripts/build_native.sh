@@ -12,7 +12,9 @@ cd "$ROOT"
 
 PYTHON="${PYTHON:-}"
 if [[ -z "$PYTHON" ]]; then
-  if [[ -x "$ROOT/.venv/bin/python" ]]; then
+  if command -v uv >/dev/null 2>&1 && [[ -x "$ROOT/.venv/bin/python" ]]; then
+    PYTHON="$ROOT/.venv/bin/python"
+  elif [[ -x "$ROOT/.venv/bin/python" ]]; then
     PYTHON="$ROOT/.venv/bin/python"
   else
     PYTHON="python3"

@@ -23,8 +23,10 @@ train = [
 dev = [
   "pytest",
   "ruff",
-  "build",
 ]
+
+[tool.uv]
+package = true
 
 [project.scripts]
 tallynet-mnist = "tallynet.cli:train_mnist"

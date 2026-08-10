@@ -19,7 +19,7 @@ def mnist_loaders(
     except ImportError as e:
         raise ImportError(
             "MNIST loaders require torchvision. Install with: "
-            "pip install 'tallynet[train]' or uv sync --extra train"
+            "uv sync --extra train"
         ) from e
 
     data_dir = Path(data_dir)

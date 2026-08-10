@@ -2,25 +2,32 @@
 
 TallyNet is a Python package plus a small **C++** popcount library (optional CUDA). Python still runs without the `.so` (table fallback). The SIMD kernel is what you want for experiments.
 
-## One-command install (developer machine)
-
-Needs Python ≥ 3.12, `g++`, and (for the demo) a working venv.
+Installs use **[uv](https://docs.astral.sh/uv/)** (not pip). Get it with:
 
 ```bash
-./scripts/install.sh           # venv + package + CPU kernel
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+## One-command install (developer machine)
+
+Needs Python ≥ 3.12, `uv`, and `g++`.
+
+```bash
+./scripts/install.sh           # uv venv + package + CPU kernel
 ./scripts/install.sh --train   # also torchvision (MNIST)
 ./scripts/install.sh --cpu-torch   # PyTorch CPU wheels (no NVIDIA)
 ```
 
-Then:
+Or by hand:
 
 ```bash
-source .venv/bin/activate
-python -m tallynet.native info
-pytest -q
+uv sync --extra dev --extra train
+./scripts/build_native.sh
+uv run python -m tallynet.native info
+uv run pytest -q
 ```
 
-Or `make install` / `make test`.
+Then `source .venv/bin/activate`, or keep using `uv run …`. Or `make install` / `make test`.
 
 ## What gets built
 
@@ -37,7 +44,7 @@ Search order at import: `$TALLYNET_KERNEL_DIR` → `tallynet/lib/` → `.kernel_
 ./scripts/build_native.sh
 ./scripts/build_native.sh --out tallynet/lib --march x86-64-v3
 ./scripts/build_native.sh --cuda --force
-python -m tallynet.native build --out .kernel_cache --march native
+uv run python -m tallynet.native build --out .kernel_cache --march native
 ```
 
 | Variable | Meaning |
@@ -53,7 +60,7 @@ python -m tallynet.native build --out .kernel_cache --march native
 ## Deployable artifacts
 
 ```bash
-./scripts/package.sh
+./scripts/package.sh    # uv build + portable kernel
 ```
 
 Writes:
@@ -64,15 +71,15 @@ Writes:
 Install the wheel on another Linux x86_64 machine with a compatible glibc:
 
 ```bash
-pip install dist/tallynet-*.whl
-python -m tallynet.native info
+uv pip install dist/tallynet-*.whl
+uv run python -m tallynet.native info
 ```
 
 The sdist has the C++ sources; the first import compiles if no `.so` is on the search path.
 
 ## CI / CD
 
-GitHub Actions:
+GitHub Actions (uv + `astral-sh/setup-uv`):
 
 | Workflow | When | Artifacts |
 |----------|------|-----------|
@@ -87,13 +94,13 @@ Download CI kernels from the Actions run → Artifacts, or set `TALLYNET_KERNEL_
 
 ```bash
 cp -a ../binary-optimizers/data/MNIST data/
-tallynet-mnist --data-dir data --epochs 5
+uv run tallynet-mnist --data-dir data --epochs 5
 ```
 
 ## Makefile
 
 ```text
-make install      # scripts/install.sh
+make install      # scripts/install.sh (uv)
 make native       # compile kernels
 make test         # pytest + junit in artifacts/
 make wheel        # portable wheel + kernel
