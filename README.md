@@ -3,25 +3,35 @@
 Weights stored as bits. Each **parameter is one bit** (`+1` or `-1`). A group of `S` bits on one connection is a **tally weight**: we count how many are `+1` and use that count in the layer.
 
 ```text
-bits  →  count  →  turn count into a number  →  use it in the layer
+packed bits  →  popcount  →  turn count into a number  →  stock GEMM
 ```
 
 This repo is about **that way of storing weights**. Training helpers exist so demos run; they are not the claim.
 
-**Goal:** use less memory to train, so more weights fit on the computer you already have, and the model can be smarter. The bet is that a TallyNet trained on a given machine can beat a normal network that has to fit in the same memory. See [docs/GOAL.md](docs/GOAL.md). Names: [docs/TALLYNET_NAMING.md](docs/TALLYNET_NAMING.md).
+**Goal:** use less memory to train, so more weights fit on the computer you already have, and the model can be smarter. The bet is that a TallyNet trained on a given machine can beat a normal network that has to fit in the same memory. See [docs/GOAL.md](docs/GOAL.md). Names: [docs/TALLYNET_NAMING.md](docs/TALLYNET_NAMING.md). SIMD / popcount kernels: [docs/SIMD.md](docs/SIMD.md).
 
 ## Install
 
-```bash
-cd tallynet
-# with uv (recommended)
-uv sync --extra train --extra dev
+Uses **[uv](https://docs.astral.sh/uv/)** (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
 
-# or pip
-pip install -e ".[train,dev]"
+```bash
+# venv + package + C++ popcount kernel
+./scripts/install.sh
+./scripts/install.sh --train        # + torchvision (MNIST)
+./scripts/install.sh --cpu-torch    # PyTorch CPU wheels
+
+# or by hand
+uv sync --extra train --extra dev
+./scripts/build_native.sh
 ```
 
-PyTorch CPU wheels: if install is slow or wrong platform, install `torch` / `torchvision` from the [PyTorch index](https://pytorch.org/get-started/locally/) first.
+Full install / wheel / CI notes: [docs/INSTALL.md](docs/INSTALL.md).
+
+PyTorch CPU wheels: if install is slow or wrong platform, install `torch` / `torchvision` from the [PyTorch index](https://pytorch.org/get-started/locally/) first (`uv pip install torch --index-url https://download.pytorch.org/whl/cpu`).
+
+Bits are stored packed (`uint8`). The first tally uses a small native popcount library (CPU SIMD; CUDA `__popc` when the driver works). Set `TALLYNET_NATIVE=0` to force the Python table. `TallyLinear(..., compute="bfloat16")` or `compute="int8"` (majority, inference) picks the GEMM.
+
+GitHub Actions builds portable kernels (`-march=x86-64-v3`) and uploads **wheels**, **`.so` files**, and **test reports** as artifacts. Tags `v*` also publish a GitHub Release.
 
 ## Quick start (library)
 
@@ -51,23 +61,23 @@ Storage stays discrete (`bits` in `{±1}`); the demo steps Adam/SGD on the encod
 
 ```bash
 uv run pytest -q
-# no dataset required
+# MNIST train-speed test needs data/MNIST (copy from binary-optimizers)
+uv run --extra train pytest -q tests/test_mnist_train_speed.py
 ```
 
 ## Layout
 
 ```
 tallynet/           # library
-  encoders.py       # enc(tally) maps
-  layers.py         # TallyLinear
-  models.py         # TallyMLP
-  writeback.py      # optional continuous step + bit flips
-  data.py / cli.py  # MNIST demo
-docs/
-  GOAL.md            # hypothesis: more params, same hardware
-  TALLYNET_NAMING.md
-  ARCHITECTURE.md
-tests/
+  csrc/             # C++ / CUDA popcount
+  native.py         # load / JIT / CLI
+  ...
+scripts/
+  install.sh        # venv + kernels
+  build_native.sh
+  package.sh        # wheel + portable .so
+.github/workflows/  # CI test + artifacts; tag release
+docs/INSTALL.md
 ```
 
 ## Relation to `binary-optimizers`

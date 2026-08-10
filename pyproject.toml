@@ -25,12 +25,19 @@ dev = [
   "ruff",
 ]
 
+[tool.uv]
+package = true
+
 [project.scripts]
 tallynet-mnist = "tallynet.cli:train_mnist"
+tallynet-native = "tallynet.native:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tallynet*"]
+
+[tool.setuptools.package-data]
+tallynet = ["csrc/*", "lib/.gitkeep", "lib/*.so"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -39,3 +46,8 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+# Ruff 0.16+ enables a large default rule set. Keep the classic bug-finding
+# checks so CI does not fail on optional style nits (UP, PLR, …).
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

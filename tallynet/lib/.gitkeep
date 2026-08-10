@@ -1,0 +1,2 @@
+# Built kernels (libtallynet_popcount_cpu.so) land here for wheels.
+# Directory is kept; .so files are gitignored and produced by scripts/build_native.sh.

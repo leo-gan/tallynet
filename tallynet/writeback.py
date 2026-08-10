@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 
 from tallynet.layers import TallyLinear
+from tallynet.packed import flip_packed_bits_
 
 OptName = Literal["sgd", "sgd_m", "adam"]
 DecoderName = Literal["density", "thresholded", "sign_noise"]
@@ -152,38 +153,21 @@ class TallyWriteback:
             delta_abs_n += delta.numel()
 
             if self.freeze_bits:
-                total += layer.bits.numel()
+                total += layer.num_bits
                 continue
 
             p = self._flip_prob(delta)
             want_plus = delta > 0
             want_minus = delta < 0
-            bits = layer.bits
-            bits_f = bits.float()
-
-            is_minus = bits_f < 0
-            is_plus = bits_f > 0
-            eligible = (want_plus.unsqueeze(-1) & is_minus) | (
-                want_minus.unsqueeze(-1) & is_plus
+            n_flip = flip_packed_bits_(
+                layer.bits,
+                layer.tally_width,
+                want_plus,
+                want_minus,
+                p,
             )
-            probs = p.unsqueeze(-1).expand_as(bits_f)
-            roll = torch.rand_like(bits_f)
-            flip_mask = eligible & (roll < probs)
-
-            n_flip = int(flip_mask.sum().item())
             flipped += n_flip
-            total += bits.numel()
-
-            if n_flip:
-                new_f = bits_f.clone()
-                new_f[flip_mask] *= -1.0
-                new_i = torch.where(
-                    new_f >= 0,
-                    torch.ones_like(bits),
-                    -torch.ones_like(bits),
-                ).to(torch.int8)
-                bits.copy_(new_i)
-
+            total += layer.num_bits
             layer.enforce_binary_()
 
         if self.ln_optimizer is not None:

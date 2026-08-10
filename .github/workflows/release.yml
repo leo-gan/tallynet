@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: System compilers
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++
+
+      - name: Build artifacts
+        env:
+          TALLYNET_MARCH: x86-64-v3
+        run: |
+          ./scripts/install.sh --cpu-torch
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          ./scripts/package.sh
+          mkdir -p artifacts
+          pytest -q --junitxml=artifacts/junit.xml
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.ref_name }}
+          path: |
+            dist/*
+            artifacts/native/*
+            artifacts/junit.xml
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            dist/* \
+            artifacts/native/* \
+            --title "${{ github.ref_name }}" \
+            --generate-notes

@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: System compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ make
+          g++ --version
+          uv --version
+
+      - name: Install (CPU PyTorch + package + kernel)
+        env:
+          TALLYNET_MARCH: x86-64-v3
+        run: |
+          ./scripts/install.sh --cpu-torch
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Ruff
+        run: ruff check tallynet tests scripts
+
+      - name: Pytest
+        run: |
+          mkdir -p artifacts
+          pytest -q --junitxml=artifacts/junit.xml
+
+      - name: Kernel info
+        run: python -m tallynet.native info
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: artifacts/junit.xml
+          if-no-files-found: warn
+
+  build:
+    name: package artifacts
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: System compilers
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends g++
+
+      - name: Install for packaging
+        env:
+          TALLYNET_MARCH: x86-64-v3
+        run: ./scripts/install.sh --cpu-torch
+
+      - name: Build wheel + portable kernel
+        env:
+          TALLYNET_MARCH: x86-64-v3
+        run: ./scripts/package.sh
+
+      - name: Upload Python packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-packages
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Upload native kernels
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-kernels-linux-x86_64
+          path: artifacts/native/*
+          if-no-files-found: error

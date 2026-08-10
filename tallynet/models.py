@@ -111,6 +111,9 @@ class TallyMLP(nn.Module):
     def assert_binary_invariants(self) -> None:
         for layer in self.tally_layers():
             p = layer.bits
-            assert p.dtype == torch.int8, p.dtype
-            uniq = set(torch.unique(p).tolist())
+            assert p.dtype == torch.uint8, p.dtype
+            assert p.shape[-1] == layer.nbytes
+            layer.enforce_binary_()
+            pm1 = layer.bits_pm1()
+            uniq = set(torch.unique(pm1).tolist())
             assert uniq.issubset({-1, 1}), uniq

@@ -11,6 +11,11 @@ venv/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.kernel_cache/
+artifacts/
+*.so
+tallynet/lib/*.so
+tallynet/_kernels*
 
 # Data / runs
 data/
@@ -28,4 +33,4 @@ runs/
 .DS_Store
 *.swp
 
-# uv / lock optional keep — we commit uv.lock if generated
+# uv.lock is committed (uv sync)
