@@ -31,6 +31,9 @@ lint:
 bench: native
 	uv run python scripts/bench_decode.py
 
+bench-mnist: native
+	uv run --extra train python scripts/bench_mnist_train.py --steps 30 --epoch
+
 wheel:
 	./scripts/package.sh
 

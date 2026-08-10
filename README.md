@@ -61,7 +61,8 @@ Storage stays discrete (`bits` in `{±1}`); the demo steps Adam/SGD on the encod
 
 ```bash
 uv run pytest -q
-# no dataset required
+# MNIST train-speed test needs data/MNIST (copy from binary-optimizers)
+uv run --extra train pytest -q tests/test_mnist_train_speed.py
 ```
 
 ## Layout

@@ -117,8 +117,6 @@ At default `S=256`, **counting used to be the whole forward**. SIMD makes decode
 
 At `S=8` the old float-sum is already small, and SIMD vs table is a wash — the multiply dominates.
 
-**Training** (forward + backward + packed writeback, default demo): **~123 ms**. Writeback still walks `S` bit positions per group. The SIMD kernel speeds the **forward count**, not the flip loop. At `S=256` that loop is the next bottleneck.
-
 Isolated decode, 1024×1024 weights (from `scripts/bench_decode.py`):
 
 | `S` | Old float-sum | SIMD | Packed size vs `int8 ±1` |
@@ -127,14 +125,32 @@ Isolated decode, 1024×1024 weights (from `scripts/bench_decode.py`):
 | 64 | 27 ms | 0.58 ms | 1/8 |
 | 256 | 100 ms | 0.71 ms | 1/8 |
 
+---
+
+## MNIST training speed (old kernel vs SIMD)
+
+Real MNIST (`data/MNIST` copied from `binary-optimizers`), TallyMLP `784→128→10`, majority, Adam, batch 128, CPU, 4 threads. **Same packed writeback** on both paths; only the tally decode changes (old = unpack `±1` + `float().sum`; new = SIMD popcount).
+
+Recorded 2026-08-09 (`scripts/bench_mnist_train.py --steps 30 --epoch`).
+
+| `S` | Old ms/step | SIMD ms/step | Step speedup | Old 1 epoch | SIMD 1 epoch | Epoch speedup |
+|----:|------------:|-------------:|-------------:|------------:|-------------:|--------------:|
+| 8 | 5.61 | **4.09** | **1.37×** | 5.8 s | **5.0 s** | 1.16× |
+| 256 | 219.74 | **114.23** | **1.92×** | 115.5 s | **60.6 s** | **1.91×** |
+
+At default `S=256`, training is about **2×** faster with SIMD. The step is no longer 220 ms of float-sum; it is ~114 ms of **writeback** (Python loop over 256 bit positions). That is why train speedup is ~2× while **forward** speedup is ~400×.
+
+At `S=8`, decode was already cheap; train is writeback + GEMM, so only ~1.4×.
+
+The pytest `tests/test_mnist_train_speed.py` loads one MNIST batch and **fails** if a SIMD train step is not faster than the old kernel. Skips if `data/MNIST` or torchvision is missing.
+
 Re-run:
 
 ```bash
-python scripts/bench_decode.py
-pytest -q tests/test_simd_speed.py
+uv run --extra train pytest -q tests/test_mnist_train_speed.py tests/test_simd_speed.py
+uv run --extra train python scripts/bench_mnist_train.py --steps 30 --epoch
+uv run python scripts/bench_decode.py
 ```
-
-The speed test **fails** if native is built and the default TallyMLP is not clearly faster than float-sum and the table. If `g++` cannot build the `.so`, that test skips; correctness tests still use the table.
 
 ---
 
