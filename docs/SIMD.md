@@ -3,7 +3,7 @@
 **Date:** 2026-08-09  
 **Scope:** why popcount hardware helps, what we built, and what we measured on the current net.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer, [GOAL.md](GOAL.md) for the memory bet. This note is only about **compute**: counting bits and multiplying.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer, [GOAL.md](GOAL.md) for the memory bet, [INSTALL.md](INSTALL.md) for build and CI artifacts. This note is only about **compute**: counting bits and multiplying.
 
 ---
 

@@ -12,7 +12,9 @@ venv/
 .ruff_cache/
 .mypy_cache/
 .kernel_cache/
+artifacts/
 *.so
+tallynet/lib/*.so
 tallynet/_kernels*
 
 # Data / runs

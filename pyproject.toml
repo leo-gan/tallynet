@@ -23,14 +23,19 @@ train = [
 dev = [
   "pytest",
   "ruff",
+  "build",
 ]
 
 [project.scripts]
 tallynet-mnist = "tallynet.cli:train_mnist"
+tallynet-native = "tallynet.native:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tallynet*"]
+
+[tool.setuptools.package-data]
+tallynet = ["csrc/*", "lib/.gitkeep", "lib/*.so"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
