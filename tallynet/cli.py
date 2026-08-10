@@ -10,9 +10,8 @@ import torch
 import torch.nn.functional as F
 
 from tallynet.data import accuracy, mnist_loaders
-from tallynet.encoders import EncoderName
 from tallynet.models import TallyMLP
-from tallynet.writeback import DecoderName, OptName, TallyWriteback
+from tallynet.writeback import TallyWriteback
 
 
 def train_mnist(argv: list[str] | None = None) -> None:
