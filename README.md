@@ -3,7 +3,7 @@
 Weights stored as bits. Each **parameter is one bit** (`+1` or `-1`). A group of `S` bits on one connection is a **tally weight**: we count how many are `+1` and use that count in the layer.
 
 ```text
-bits  →  count  →  turn count into a number  →  use it in the layer
+packed bits  →  popcount  →  turn count into a number  →  stock GEMM
 ```
 
 This repo is about **that way of storing weights**. Training helpers exist so demos run; they are not the claim.
@@ -22,6 +22,8 @@ pip install -e ".[train,dev]"
 ```
 
 PyTorch CPU wheels: if install is slow or wrong platform, install `torch` / `torchvision` from the [PyTorch index](https://pytorch.org/get-started/locally/) first.
+
+Bits are stored packed (`uint8`). The first tally uses a small native popcount library (CPU SIMD; CUDA `__popc` when the driver works). Set `TALLYNET_NATIVE=0` to force the Python table. `TallyLinear(..., compute="bfloat16")` or `compute="int8"` (majority, inference) picks the GEMM.
 
 ## Quick start (library)
 
@@ -59,6 +61,9 @@ uv run pytest -q
 ```
 tallynet/           # library
   encoders.py       # enc(tally) maps
+  packed.py         # uint8 pack / popcount
+  kernels.py        # decode + GEMM
+  native.py         # optional CPU SIMD / CUDA popcount
   layers.py         # TallyLinear
   models.py         # TallyMLP
   writeback.py      # optional continuous step + bit flips

@@ -6,10 +6,10 @@ See [TALLYNET_NAMING.md](TALLYNET_NAMING.md) for names. **One bit is one paramet
 
 For each connection `(i, j)`:
 
-1. Store `S` bits, each `+1` or `-1` (`bits[i, j, :]`). Each bit is a parameter.
-2. Count them: `s = sum of the bits` (same as “how many are `+1`”).
+1. Store `S` bits, each `+1` or `-1`. Each bit is a parameter. In memory they are **packed**: `bits` is `uint8 [out, in, ceil(S/8)]` (`1` → `+1`, `0` → `-1`).
+2. Count them with a popcount (CPU SIMD or CUDA `__popc` when the native extension built; otherwise a 256-entry table). `s = 2 * popcount - S`.
 3. Turn the count into a number `w` with a small rule (below).
-4. Use `w` in the usual layer multiply (optionally scaled by `1 / sqrt(number of inputs)`).
+4. Multiply with a stock GEMM: `F.linear` in float32 or bfloat16 (training). Optional `compute='int8'` (majority, inference) uses `torch._int_mm`.
 
 All bits in a group count the same. Same count ⇒ same `w`. The layer’s parameter count is `out × in × S`, not `out × in`.
 
@@ -29,6 +29,7 @@ All bits in a group count the same. Same count ⇒ same `w`. The layer’s param
 | `TallyLinear` | Linear layer that stores bits this way |
 | `TallyMLP` | Small network built from `TallyLinear` |
 | `encode_tally` | The rules in the table above |
+| `packed` / `native` | Pack bits; popcount kernels |
 | `TallyWriteback` | Optional training helper: step a trainer on `w`, then flip bits |
 
 ## Not part of “the architecture”

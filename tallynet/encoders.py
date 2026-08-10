@@ -35,5 +35,8 @@ def encode_tally(
 
 
 def tally_from_bits(bits: torch.Tensor) -> torch.Tensor:
-    """Sum of ±1 bits along the last dimension (equivalent to a scaled popcount)."""
+    """Sum of unpacked ±1 bits along the last dimension.
+
+    Prefer ``tallynet.packed.tally_from_packed`` for the storage format.
+    """
     return bits.float().sum(dim=-1)

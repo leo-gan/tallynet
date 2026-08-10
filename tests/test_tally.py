@@ -42,8 +42,9 @@ def test_forward_backward_weight_grad_shape():
 def test_double_flip_identity():
     layer = TallyLinear(4, 2, tally_width=8)
     before = layer.bits.clone()
-    layer.bits.mul_(-1)
-    layer.bits.mul_(-1)
+    pm1 = layer.bits_pm1()
+    layer.set_bits_pm1_(-pm1)
+    layer.set_bits_pm1_(pm1)
     assert torch.equal(layer.bits, before)
 
 
@@ -57,7 +58,7 @@ def test_writeback_preserves_pm1():
     loss.backward()
     flip = wb.step()
     layer.enforce_binary_()
-    uniq = set(layer.bits.unique().tolist())
+    uniq = set(layer.bits_pm1().unique().tolist())
     assert uniq.issubset({-1, 1})
     assert 0.0 <= flip <= 1.0
 
@@ -99,9 +100,9 @@ def test_same_tally_same_weight():
     """Unordered multiset: only tally matters."""
     layer = TallyLinear(1, 1, tally_width=4, encoder="fixed", weight_scale=False)
     # two +1, two -1 → tally sum 0 → w=0 regardless of positions
-    layer.bits[0, 0] = torch.tensor([1, 1, -1, -1], dtype=torch.int8)
+    layer.set_bits_pm1_(torch.tensor([[[1, 1, -1, -1]]], dtype=torch.int8))
     w1 = layer.tally_weight().item()
-    layer.bits[0, 0] = torch.tensor([-1, 1, -1, 1], dtype=torch.int8)
+    layer.set_bits_pm1_(torch.tensor([[[-1, 1, -1, 1]]], dtype=torch.int8))
     w2 = layer.tally_weight().item()
     assert abs(w1 - w2) < 1e-6
     assert abs(w1) < 1e-6
