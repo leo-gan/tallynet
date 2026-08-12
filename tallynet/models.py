@@ -30,6 +30,48 @@ def _make_ln(num_features: int, mode: LNMode) -> nn.Module:
     raise ValueError(f"Unknown ln_mode: {mode}")
 
 
+class FloatMLP(nn.Module):
+    """Flatten → Linear → Act → … → Linear → logits (no bias).
+
+    Topology mirrors ``TallyMLP`` so iso-memory experiments share depth/width axes.
+    """
+
+    def __init__(
+        self,
+        *,
+        hidden_dim: int = 128,
+        depth: int = 1,
+        activation: ActName = "relu",
+        in_dim: int = 28 * 28,
+        n_classes: int = 10,
+    ):
+        super().__init__()
+        if depth < 1:
+            raise ValueError(f"depth must be >= 1, got {depth}")
+        self.hidden_dim = hidden_dim
+        self.in_dim = in_dim
+        self.n_classes = n_classes
+        self.flatten = nn.Flatten()
+        self.act: nn.Module = (
+            SquaredReLU() if activation == "squared_relu" else nn.ReLU()
+        )
+        self.linears = nn.ModuleList()
+        d = in_dim
+        for _ in range(depth):
+            self.linears.append(nn.Linear(d, hidden_dim, bias=False))
+            d = hidden_dim
+        self.linears.append(nn.Linear(d, n_classes, bias=False))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.flatten(x)
+        n = len(self.linears)
+        for i, linear in enumerate(self.linears):
+            x = linear(x)
+            if i < n - 1:
+                x = self.act(x)
+        return x
+
+
 class TallyMLP(nn.Module):
     """Flatten → [LN] → TallyLinear → Act → … → TallyLinear → logits.
 
