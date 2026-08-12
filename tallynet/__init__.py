@@ -7,7 +7,7 @@ count is mapped to the number used in the layer.
 from tallynet.encoders import EncoderName, encode_tally
 from tallynet.kernels import ComputeName
 from tallynet.layers import TallyLinear
-from tallynet.models import TallyMLP
+from tallynet.models import FloatMLP, TallyMLP
 from tallynet.packed import pack_pm1, popcount_packed, unpack_pm1
 
 __version__ = "0.1.0"
@@ -16,6 +16,7 @@ __all__ = [
     "ComputeName",
     "EncoderName",
     "encode_tally",
+    "FloatMLP",
     "pack_pm1",
     "popcount_packed",
     "TallyLinear",
