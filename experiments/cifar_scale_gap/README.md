@@ -9,6 +9,8 @@ uv run --extra train python experiments/cifar_scale_gap/train.py --quick
 uv run --extra train python experiments/cifar_scale_gap/train.py --scale
 uv run --extra train python experiments/cifar_scale_gap/train.py --expand-h
 uv run --extra train python experiments/cifar_scale_gap/train.py --expand-s
+# after a live --scale process: wait, then apply EXPAND H then EXPAND S
+./experiments/cifar_scale_gap/run_campaign.sh --wait-pid <pid>
 uv run pytest -q experiments/cifar_scale_gap
 ```
 
