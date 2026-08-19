@@ -89,14 +89,20 @@ GitHub Actions (uv + `astral-sh/setup-uv`):
 
 Download CI kernels from the Actions run → Artifacts, or set `TALLYNET_KERNEL_DIR` to that folder.
 
-## MNIST data
+## Local datasets
 
-`data/` is gitignored. Copy a local set (no download):
+`data/` is gitignored (and so are CIFAR-10 filenames if they land at the repo root). Copy local sets from `binary-optimizers` (no download):
 
 ```bash
 cp -a ../binary-optimizers/data/MNIST data/
+cp -a ../binary-optimizers/data/cifar-10-batches-py data/
+cp -a ../binary-optimizers/data/cifar-10-python.tar.gz data/
 uv run tallynet-mnist --data-dir data --epochs 5
+uv run --extra train python experiments/mnist_matched_size/train.py --quick
+uv run --extra train python experiments/cifar_scale_gap/train.py --quick
 ```
+
+See [`experiments/README.md`](../experiments/README.md).
 
 ## Makefile
 

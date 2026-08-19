@@ -40,6 +40,40 @@ def mnist_loaders(
     return train_loader, test_loader
 
 
+def cifar10_loaders(
+    data_dir: str | Path = "data",
+    batch_size: int = 128,
+    num_workers: int = 0,
+) -> Tuple[DataLoader, DataLoader]:
+    try:
+        from torchvision import datasets, transforms
+    except ImportError as e:
+        raise ImportError(
+            "CIFAR-10 loaders require torchvision. Install with: "
+            "uv sync --extra train"
+        ) from e
+
+    data_dir = Path(data_dir)
+    tfm = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize(
+                (0.4914, 0.4822, 0.4465),
+                (0.2470, 0.2435, 0.2616),
+            ),
+        ]
+    )
+    train_ds = datasets.CIFAR10(str(data_dir), train=True, download=True, transform=tfm)
+    test_ds = datasets.CIFAR10(str(data_dir), train=False, download=True, transform=tfm)
+    train_loader = DataLoader(
+        train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers
+    )
+    test_loader = DataLoader(
+        test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers
+    )
+    return train_loader, test_loader
+
+
 @torch.no_grad()
 def accuracy(model: torch.nn.Module, loader: DataLoader, device: torch.device) -> float:
     model.eval()

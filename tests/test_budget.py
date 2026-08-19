@@ -33,6 +33,10 @@ def test_tally_fits_more_params_under_same_budget():
     assert t_b.n_params > nn_b.n_params
 
 
+def test_n_groups_cifar_flat():
+    assert n_groups(hidden_dim=128, in_dim=3072) == 3072 * 128 + 128 * 10
+
+
 def test_tally_budget_increases_with_s_bits():
     a = tally_mlp_budget(hidden_dim=32, tally_width=8, batch_size=64)
     b = tally_mlp_budget(hidden_dim=32, tally_width=256, batch_size=64)

@@ -17,9 +17,17 @@ artifacts/
 tallynet/lib/*.so
 tallynet/_kernels*
 
+# Per-experiment outputs (also covered by results/)
+experiments/*/results/
+
 # Data / runs
 data/
 MNIST/
+**/MNIST/
+cifar-10-batches-py/
+**/cifar-10-batches-py/
+cifar-10-python.tar.gz
+**/cifar-10-python.tar.gz
 checkpoints/
 results/
 *.pt

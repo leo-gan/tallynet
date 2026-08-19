@@ -26,7 +26,7 @@ test: native
 	uv run pytest -q --junitxml=artifacts/junit.xml
 
 lint:
-	uv run ruff check tallynet tests scripts
+	uv run ruff check tallynet tests scripts experiments
 
 bench: native
 	uv run python scripts/bench_decode.py

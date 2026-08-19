@@ -65,6 +65,13 @@ uv run pytest -q
 uv run --extra train pytest -q tests/test_mnist_train_speed.py
 ```
 
+Hypothesis runs live under [`experiments/<name>/`](experiments/README.md). Each study is standalone (own `PROTOCOL.md`, `train.py`, `results/`). Default `pytest` does not collect them.
+
+```bash
+uv run --extra train python experiments/mnist_matched_size/train.py --quick
+uv run --extra train python experiments/cifar_scale_gap/train.py --quick
+```
+
 ## Layout
 
 ```
@@ -72,6 +79,7 @@ tallynet/           # library
   csrc/             # C++ / CUDA popcount
   native.py         # load / JIT / CLI
   ...
+experiments/<name>/ # one study each; results/ is local and gitignored
 scripts/
   install.sh        # venv + kernels
   build_native.sh
