@@ -218,11 +218,18 @@ def _load_csv(path: Path) -> list[RunResult]:
 def _write_csv(path: Path, rows: list[RunResult]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [fld.name for fld in fields(RunResult)]
-    with path.open("w", newline="") as f:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         for r in rows:
             w.writerow(asdict(r))
+    tmp.replace(path)
+
+
+def _checkpoint(latest: Path, rows: list[RunResult]) -> None:
+    """Flush after every cell so a killed run can resume."""
+    _write_csv(latest, rows)
 
 
 def _means(results: list[RunResult]) -> dict[tuple, float]:
@@ -484,6 +491,7 @@ def main(argv: list[str] | None = None) -> None:
                     )
                 )
                 done.add(fk)
+                _checkpoint(latest, results)
                 print(
                     f"   best_acc={best:.4f}  final_acc={final:.4f}  "
                     f"train_acc={tr_acc:.4f}  loss={loss:.4f}  {secs:.1f}s"
@@ -537,6 +545,7 @@ def main(argv: list[str] | None = None) -> None:
                 )
             )
             done.add(tk)
+            _checkpoint(latest, results)
             print(
                 f"   best_acc={best:.4f}  final_acc={final:.4f}  "
                 f"train_acc={tr_acc:.4f}  loss={loss:.4f}  {secs:.1f}s"
