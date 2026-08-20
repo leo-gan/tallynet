@@ -359,12 +359,32 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="H=[128], S=[32], seeds=[0], epochs=2",
     )
+    p.add_argument(
+        "--print-decision",
+        action="store_true",
+        help="Print EXPAND/STOP from latest.csv and exit (no train)",
+    )
     raw_argv = list(argv) if argv is not None else sys.argv[1:]
     args = p.parse_args(argv)
 
     latest = args.out_dir / LATEST_NAME
     prior = [] if args.no_resume else _load_csv(latest)
     pairs: list[tuple[int, int]] | None = None
+
+    if args.print_decision:
+        if not prior:
+            raise SystemExit(f"no results at {latest}; run --scale first")
+        means = _means(prior)
+        float_by_h, tally_by_hs = _tables(means)
+        longest = max((r.seconds for r in prior), default=0.0)
+        decision = decide_expand(
+            float_by_h=float_by_h,
+            tally_by_hs=tally_by_hs,
+            delta_pp=args.delta_pp,
+            longest_cell_sec=longest,
+        )
+        print("\n".join(decision.summary_lines()))
+        return
 
     if args.quick:
         args.h_values = [128]

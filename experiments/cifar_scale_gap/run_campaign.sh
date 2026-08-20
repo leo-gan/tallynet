@@ -22,41 +22,55 @@ if [[ "${1:-}" == "--wait-pid" ]]; then
   log "pid $2 exited"
 fi
 
-run_expand() {
-  local flag=$1
-  local tmp
-  tmp="$(mktemp)"
-  log "starting $flag"
+decision() {
+  PYTHONUNBUFFERED=1 uv run --extra train python -u \
+    experiments/cifar_scale_gap/train.py --print-decision
+}
+
+run_cell() {
+  local h=$1 s=$2 seed=$3
+  log "train H=$h S=$s seed=$seed"
   set +e
   PYTHONUNBUFFERED=1 uv run --extra train python -u \
-    experiments/cifar_scale_gap/train.py "$flag" >"$tmp" 2>&1
-  local rc=$?
+    experiments/cifar_scale_gap/train.py \
+    --h-values "$h" --s-values "$s" --seeds "$seed" 2>&1 | tee -a "$LOG"
+  local rc=${PIPESTATUS[0]}
   set -e
-  tee -a "$LOG" <"$tmp"
   if [[ $rc -ne 0 ]]; then
-    log "$flag failed rc=$rc"
-    rm -f "$tmp"
+    log "train H=$h S=$s seed=$seed failed rc=$rc"
     echo FAILED
     exit "$rc"
   fi
-  if grep -qE "no H rung to run|no S rung to run" "$tmp"; then
-    rm -f "$tmp"
-    return 1
-  fi
-  if grep -q "^>> " "$tmp"; then
-    rm -f "$tmp"
-    return 0
-  fi
-  rm -f "$tmp"
-  return 1
 }
 
-while run_expand --expand-h; do
-  log "expand-h finished a rung"
+# One seed per process so a 10 h host cap cannot wipe a whole rung.
+while true; do
+  dec="$(decision | tee -a "$LOG")"
+  next_h="$(echo "$dec" | sed -n 's/^EXPAND H: next H=\([0-9]*\).*/\1/p')"
+  if [[ -z "$next_h" ]]; then
+    break
+  fi
+  log "width rung H=$next_h"
+  for seed in 0 1 2; do
+    run_cell "$next_h" 32 "$seed"
+  done
 done
 
-while run_expand --expand-s; do
-  log "expand-s finished a rung"
+while true; do
+  dec="$(decision | tee -a "$LOG")"
+  s_line="$(echo "$dec" | sed -n 's/^EXPAND S: at H=\([0-9]*\) run S=\(.*\)/\1 \2/p')"
+  if [[ -z "$s_line" ]]; then
+    break
+  fi
+  s_h="${s_line%% *}"
+  s_list="${s_line#* }"
+  s_list="${s_list//,/ }"
+  log "S rung at H=$s_h S=$s_list"
+  for S in $s_list; do
+    for seed in 0 1 2; do
+      run_cell "$s_h" "$S" "$seed"
+    done
+  done
 done
 
 log "campaign gate complete"
