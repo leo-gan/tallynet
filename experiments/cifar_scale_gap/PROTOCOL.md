@@ -62,6 +62,29 @@ Gap = (tally − float) in percentage points, mean best test acc over seeds. Eva
 
 Always report train loss / train acc so a leftover gap can be labeled underfit vs capacity.
 
+## Results — Phase 1 (`S=32`, 20 epochs, seeds 0–2)
+
+Recorded 2026-08-20. CPU, native SIMD on. `results/latest.csv`.
+
+Mean **best test acc**:
+
+| `H` | float | tally `S=32` | gap (pp) | Δgap | Δtally (pp) | tally train acc | tally train loss |
+|----:|------:|-------------:|---------:|-----:|------------:|----------------:|-----------------:|
+| 128 | 0.5157 | 0.3786 | −13.70 | — | — | 0.355 | 1.98 |
+| 256 | 0.5184 | 0.3818 | −13.66 | +0.04 | +0.31 | 0.362 | 2.04 |
+| 512 | 0.5214 | 0.3918 | −12.96 | +0.71 | +1.00 | 0.368 | 2.14 |
+| 1024 | 0.5213 | 0.3849 | −13.63 | −0.68 | −0.69 | 0.362 | 2.35 |
+| 2048 | 0.5142 | 0.3810 | −13.32 | +0.32 | −0.39 | 0.354 | 2.74 |
+
+Gate after `H=2048`: tally acc plateau (last doubling −0.39 pp); gap last two |Δ| = 0.68, 0.32 (not a two-step plateau) → **EXPAND H → 4096**, then `S` cross at `H=2048`.
+
+**Provisional reading (width ladder only, not the end of the campaign):**
+
+- Weak BitNet support: **no**. The gap did not close on two successive doublings. It sat near **−13 pp** from `H=128` to `2048`.
+- Strong support: **no** (`|gap|` ≫ 1 pp).
+- MNIST-like reject is **not yet official** (need the two-step gap plateau or a cap). The leftover looks like **underfit**: float train acc ~0.70–0.78, Tally train acc stuck ~0.35–0.37 and train loss *rises* with `H`.
+- Expand to `H=4096` is still required by the pre-registered rule (in progress).
+
 ## Non-claims
 
 - Not a BitNet replication (MLP vs Transformer, ~0.4–6M connections vs 125M–30B, writeback vs STE).
